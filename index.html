@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XFZ Sources</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: black;
+            color: white;
+        }
+        header {
+            background-color: rgba(0, 0, 0, 0.5);
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .menu-icon {
+            cursor: pointer;
+            font-size: 1.5rem;
+        }
+        .side-menu {
+            position: fixed;
+            top: 0;
+            left: -250px;
+            width: 250px;
+            height: 100%;
+            background-color: #111;
+            transition: left 0.3s;
+            padding: 1rem;
+            box-sizing: border-box;
+            z-index: 1000;
+        }
+        .side-menu.open {
+            left: 0;
+        }
+        .side-menu a {
+            display: block;
+            color: white;
+            text-decoration: none;
+            margin-bottom: 1rem;
+        }
+        .close-btn {
+            color: white;
+            font-size: 1.5rem;
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            cursor: pointer;
+        }
+        main {
+            padding: 1rem;
+        }
+        .post {
+            background-color: #222;
+            border-radius: 5px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        .post img {
+            max-width: 100%;
+            height: auto;
+        }
+        .post-description {
+            max-height: 4.5em;
+            overflow: hidden;
+        }
+        .post-description.expanded {
+            max-height: none;
+        }
+        .show-more {
+            color: #007bff;
+            cursor: pointer;
+            display: inline-block;
+            margin-top: 0.5rem;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+        }
+        .modal-content {
+            background-color: #333;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 500px;
+        }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .close:hover,
+        .close:focus {
+            color: #fff;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        input, textarea, button {
+            display: block;
+            width: 100%;
+            margin-bottom: 10px;
+            padding: 5px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #search-container {
+            margin-bottom: 1rem;
+        }
+        #ad-popup {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background-color: #333;
+            padding: 1rem;
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="menu-icon" onclick="toggleMenu()">☰</div>
+        <h1>XFZ Sources</h1>
+        <div></div>
+    </header>
+
+    <div id="side-menu" class="side-menu">
+        <span class="close-btn" onclick="toggleMenu()">&times;</span>
+        <a href="#" onclick="toggleMenu()">Home</a>
+        <a href="#" onclick="toggleMenu()">About</a>
+        <a href="#" onclick="openLoginModal()">Account</a>
+        <a href="#" onclick="openRequestPanel()">Request</a>
+        <a href="#" id="admin-requests-link" style="display:none;" onclick="showAdminRequests()">View Requests</a>
+        <a href="#" id="admin-ads-link" style="display:none;" onclick="openAdsPanel()">Ads</a>
+    </div>
+
+    <main>
+        <div id="search-container">
+            <input type="text" id="search-input" placeholder="Search posts..." onkeyup="searchPosts()">
+        </div>
+        <div id="posts-container"></div>
+        <div id="admin-panel" style="display:none;">
+            <h2>Add New Post</h2>
+            <form id="new-post-form">
+                <input type="text" id="post-title" placeholder="Post Title" required>
+                <input type="file" id="post-image" accept="image/*">
+                <textarea id="post-description" placeholder="Post Description" required></textarea>
+                <button type="submit">Add Post</button>
+            </form>
+        </div>
+        <div id="request-panel" style="display:none;">
+            <h2>Submit a Request</h2>
+            <form id="new-request-form">
+                <input type="text" id="request-title" placeholder="Request Title" required>
+                <textarea id="request-description" placeholder="Request Description" required></textarea>
+                <button type="submit">Submit Request</button>
+            </form>
+        </div>
+        <div id="ads-panel" style="display:none;">
+            <h2>Update Advertisement</h2>
+            <form id="update-ad-form">
+                <textarea id="ad-html" placeholder="Enter HTML code for the ad" required></textarea>
+                <button type="submit">Update Advertisement</button>
+            </form>
+        </div>
+    </main>
+
+    <div id="login-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeLoginModal()">&times;</span>
+            <h2>Admin Login</h2>
+            <form id="login-form">
+                <input type="text" id="username" placeholder="Username" required>
+                <input type="password" id="password" placeholder="Password" required>
+                <button type="submit">Login</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="edit-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeEditModal()">&times;</span>
+            <h2>Edit Post</h2>
+            <form id="edit-post-form">
+                <input type="text" id="edit-post-title" placeholder="Post Title" required>
+                <input type="file" id="edit-post-image" accept="image/*">
+                <textarea id="edit-post-description" placeholder="Post Description" required></textarea>
+                <button type="submit">Update Post</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="ad-popup"></div>
+
+    <script>
+        let isAdmin = false;
+        let posts = [];
+        let requests = [];
+        let currentEditingPostIndex = -1;
+        let adHtml = '';
+
+        function toggleMenu() {
+            document.getElementById('side-menu').classList.toggle('open');
+        }
+
+        function openLoginModal() {
+            document.getElementById('login-modal').style.display = 'block';
+            toggleMenu();
+        }
+
+        function closeLoginModal() {
+            document.getElementById('login-modal').style.display = 'none';
+        }
+
+        function openRequestPanel() {
+            document.getElementById('request-panel').style.display = 'block';
+            toggleMenu();
+        }
+
+        function openAdsPanel() {
+            document.getElementById('ads-panel').style.display = 'block';
+            toggleMenu();
+        }
+
+        function renderPosts() {
+            const postsContainer = document.getElementById('posts-container');
+            postsContainer.innerHTML = '';
+            posts.forEach((post, index) => {
+                const postElement = document.createElement('div');
+                postElement.className = 'post';
+                postElement.innerHTML = `
+                    <h2>${post.title}</h2>
+                    ${post.image ? `<img src="${post.image}" alt="${post.title}">` : ''}
+                    <div class="post-description">
+                        ${linkify(post.description)}
+                    </div>
+                    <span class="show-more" onclick="toggleDescription(this)">Show more</span>
+                    <div>
+                        <button onclick="handleLike(${index})">👍 ${post.likes}</button>
+                        <button>👁️ ${post.views}</button>
+                        <button>💬 ${post.comments.length}</button>
+                        ${new Date(post.timestamp).toLocaleDateString()}
+                    </div>
+                    ${isAdmin ? `
+                        <button onclick="editPost(${index})">Edit</button>
+                        <button onclick="deletePost(${index})">Delete</button>
+                    ` : ''}
+                `;
+                postsContainer.appendChild(postElement);
+            });
+        }
+
+        function toggleDescription(element) {
+            const description = element.previousElementSibling;
+            description.classList.toggle('expanded');
+            element.textContent = description.classList.contains('expanded') ? 'Show less' : 'Show more';
+        }
+
+        function linkify(text) {
+            const urlRegex = /(https?:\/\/[^\s]+)/g;
+            return text.replace(urlRegex, function(url) {
+                return '<a href="' + url + '" target="_blank">' + url + '</a>';
+            });
+        }
+
+        document.getElementById('login-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            if (username === 'ADAN' && password === 'ADAN0000') {
+                isAdmin = true;
+                closeLoginModal();
+                document.getElementById('admin-panel').style.display = 'block';
+                document.getElementById('admin-requests-link').style.display = 'block';
+                document.getElementById('admin-ads-link').style.display = 'block';
+                alert('Login successful. You now have admin access.');
+                renderPosts();
+            } else {
+                alert('Invalid credentials');
+            }
+        });
+
+        document.getElementById('new-post-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            if (!isAdmin) {
+                alert('You must be an admin to add posts.');
+                return;
+            }
+            const title = document.getElementById('post-title').value;
+            const imageFile = document.getElementById('post-image').files[0];
+            const description = document.getElementById('post-description').value;
+            
+            if (imageFile) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const imageData = event.target.result;
+                    posts.unshift({
+                        title,
+                        image: imageData,
+                        description,
+                        comments: [],
+                        views: 0,
+                        likes: 0,
+                        timestamp: new Date().toISOString()
+                    });
+                    renderPosts();
+                };
+                reader.readAsDataURL(imageFile);
+            } else {
+                posts.unshift({
+                    title,
+                    description,
+                    comments: [],
+                    views: 0,
+                    likes: 0,
+                    timestamp: new Date().toISOString()
+                });
+                renderPosts();
+            }
+            
+            this.reset();
+        });
+
+        document.getElementById('new-request-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const title = document.getElementById('request-title').value;
+            const description = document.getElementById('request-description').value;
+            requests.unshift({ title, description });
+            this.reset();
+            alert('Your request has been submitted.');
+        });
+
+        function searchPosts() {
+            const searchTerm = document.getElementById('search-input').value.toLowerCase();
+            const filteredPosts = posts.filter(post => 
+                post.title.toLowerCase().includes(searchTerm) || 
+                post.description.toLowerCase().includes(searchTerm)
+            );
+            renderFilteredPosts(filteredPosts);
+        }
+
+        function renderFilteredPosts(filteredPosts) {
+            const postsContainer = document.getElementById('posts-container');
+            postsContainer.innerHTML = '';
+            filteredPosts.forEach((post, index) => {
+                const postElement = document.createElement('div');
+                postElement.className = 'post';
+                postElement.innerHTML = `
+                    <h2>${post.title}</h2>
+                    ${post.image ? `<img src="${post.image}" alt="${post.title}">` : ''}
+                    <div class="post-description">
+                        ${linkify(post.description)}
+                    </div>
+                    <span class="show-more" onclick="toggleDescription(this)">Show more</span>
+                    <div>
+                        <button onclick="handleLike(${index})">👍 ${post.likes}</button>
+                        <button>👁️ ${post.views}</button>
+                        <button>💬 ${post.comments.length}</button>
+                        ${new Date(post.timestamp).toLocaleDateString()}
+                    </div>
+                    ${isAdmin ? `
+                        <button onclick="editPost(${index})">Edit</button>
+                        <button onclick="deletePost(${index})">Delete</button>
+                    ` : ''}
+                `;
+                postsContainer.appendChild(postElement);
+            });
+        }
+
+        function showAdminRequests() {
+            if (!isAdmin) {
+                alert('You must be an admin to view requests.');
+                return;
+            }
+            const postsContainer = document.getElementById('posts-container');
+            postsContainer.innerHTML = '<h2>User Requests</h2>';
+            requests.forEach(request => {
+                const requestElement = document.createElement('div');
+                requestElement.className = 'request';
+                requestElement.innerHTML = `
+                    <h3>${request.title}</h3>
+                    <p>${request.description}</p>
+                `;
+                postsContainer.appendChild(requestElement);
+            });
+            toggleMenu();
+        }
+
+        function editPost(index) {
+            const post = posts[index];
+            document.getElementById('edit-post-title').value = post.title;
+            document.getElementById('edit-post-description').value = post.description;
+            document.getElementById('edit-modal').style.display = 'block';
+            currentEditingPostIndex = index;
+        }
+
+        function closeEditModal() {
+            document.getElementById('edit-modal').style.display = 'none';
+        }
+
+        document.getElementById('edit-post-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const title = document.getElementById('edit-post-title').value;
+            const imageFile = document.getElementById('edit-post-image').files[0];
+            const description = document.getElementById('edit-post-description').value;
+            
+            if (imageFile) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const imageData = event.target.result;
+                    posts[currentEditingPostIndex] = {
+                        ...posts[currentEditingPostIndex],
+                        title,
+                        image: imageData,
+                        description
+                    };
+                    renderPosts();
+                };
+                reader.readAsDataURL(imageFile);
+            } else {
+                posts[currentEditingPostIndex] = {
+                    ...posts[currentEditingPostIndex],
+                    title,
+                    description
+                };
+                renderPosts();
+            }
+            
+            closeEditModal();
+            this.reset();
+        });
+
+        function deletePost(index) {
+            if (confirm('Are you sure you want to delete this post?')) {
+                posts.splice(index, 1);
+                renderPosts();
+            }
+        }
+
+        function handleLike(index) {
+            posts[index].likes++;
+            renderPosts();
+        }
+
+        document.getElementById('update-ad-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            adHtml = document.getElementById('ad-html').value;
+            document.getElementById('ad-popup').innerHTML = adHtml;
+            document.getElementById('ad-popup').style.display = 'block';
+            this.reset();
+            alert('Advertisement has been updated.');
+        });
+
+        renderPosts();
+    </script>
+</body>
+</html>
